@@ -1,0 +1,18 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Virtualenv
+.venv/
+venv/
+
+# Local SQLite databases
+*.db
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/

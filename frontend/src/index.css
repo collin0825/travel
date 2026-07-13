@@ -1,0 +1,549 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+
+/* Tailwind v4 theme tokens mapped to the existing design system.
+   Use `bg-accent`, `text-primary`, etc. in new components; the legacy
+   .glass-card / .btn-* component classes below remain the source of truth
+   for the current look. */
+@theme {
+  --color-accent: #38bdf8;
+  --color-danger: #ef4444;
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --font-sans: 'Outfit', sans-serif;
+}
+
+:root {
+  font-family: 'Outfit', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Theme color tokens - Dark Mode by default */
+  --bg-gradient-start: #0f172a;
+  --bg-gradient-end: #020617;
+  --glass-bg: rgba(30, 41, 59, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.05);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-color: #38bdf8; /* Ocean sky blue */
+  --accent-gradient: linear-gradient(135deg, #38bdf8, #0284c7);
+  --danger-color: #ef4444;
+  --success-color: #22c55e;
+  --warning-color: #eab308;
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg-gradient-start: #f1f5f9;
+  --bg-gradient-end: #cbd5e1;
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --glass-highlight: rgba(15, 23, 42, 0.03);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent-color: #0284c7;
+  --accent-gradient: linear-gradient(135deg, #0284c7, #0369a1);
+  --card-shadow: 0 8px 32px 0 rgba(148, 163, 184, 0.15);
+  
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  width: 100vw;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+  background-attachment: fixed;
+  color: var(--text-primary);
+  overflow-x: hidden;
+  display: flex;
+  justify-content: center;
+}
+
+#root {
+  width: 100%;
+  max-width: 480px; /* Force mobile phone aspect ratio layout on desktop */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 4px;
+}
+
+/* Glassmorphism utility card */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--card-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card:active {
+  transform: scale(0.98);
+}
+
+/* Input Fields styling */
+.glass-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 16px; /* Avoid iOS zoom on focus */
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+[data-theme='light'] .glass-input {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.glass-input:focus {
+  border-color: var(--accent-color);
+}
+
+/* Button styling */
+.btn-primary {
+  width: 100%;
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+  transition: opacity 0.2s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  width: 100%;
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-secondary:active {
+  transform: scale(0.97);
+}
+
+/* Bottom Navigation Bar style (Native App experience) */
+.bottom-nav {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px)); /* Support iPhone Notch spacing */
+  z-index: 100;
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+  flex: 1;
+}
+
+.bottom-nav-item.active {
+  color: var(--accent-color);
+}
+
+.bottom-nav-item svg {
+  margin-bottom: 4px;
+  width: 22px;
+  height: 22px;
+}
+
+/* Header style */
+.app-header {
+  position: sticky;
+  top: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border);
+  padding: 16px;
+  z-index: 90;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+[data-theme='light'] .app-header {
+  background: rgba(241, 245, 249, 0.6);
+}
+
+/* General Layouts */
+.content-area {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  padding-bottom: 40px;
+}
+
+.flex-row-center {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-blue {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+}
+
+/* Custom animations */
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease forwards;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app-spinner {
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top: 4px solid var(--accent-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+.avatar-stack {
+  display: flex;
+  align-items: center;
+}
+
+.avatar-stack-item {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-gradient-start);
+  margin-left: -8px;
+  object-fit: cover;
+  background: var(--glass-bg);
+}
+
+.avatar-stack-item:first-child {
+  margin-left: 0;
+}
+
+/* Theme toggle — moved out of inline styles so media queries can reposition/hide it */
+.theme-toggle--floating {
+  position: absolute;
+  top: 20px;
+  right: 60px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+}
+
+.theme-toggle--inline {
+  position: absolute;
+  top: 20px;
+  right: 60px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+}
+
+/* Responsive layout helpers — mobile-first; the desktop overrides live in the
+   single `@media (min-width: 1024px)` block below. */
+.trip-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 100vh;
+}
+
+.trip-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Desktop sidebar navigation (hidden on mobile) */
+.side-nav {
+  display: none;
+}
+
+.side-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 14px;
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s, color 0.2s;
+}
+
+.side-nav-item:hover {
+  background: var(--glass-highlight);
+  color: var(--text-primary);
+}
+
+.side-nav-item.active {
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--accent-color);
+}
+
+.side-nav-item svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* Stacks like a plain column on mobile; splits into main + sticky aside on desktop.
+   The aside comes first in the DOM (mobile keeps summary/forms on top); `order`
+   flips it to the right column on desktop. */
+.split-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+/* One column on mobile, auto-fill grid on desktop */
+.cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.desktop-only {
+  display: none !important;
+}
+
+@media (min-width: 1024px) {
+  #root {
+    max-width: none;
+    background: none;
+    box-shadow: none;
+  }
+
+  .content-area {
+    padding: 32px 40px 64px;
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .app-header {
+    padding: 16px 40px;
+  }
+
+  .bottom-nav {
+    display: none;
+  }
+
+  .mobile-only {
+    display: none !important;
+  }
+
+  .desktop-only {
+    display: flex !important;
+  }
+
+  .trip-layout {
+    flex-direction: row;
+  }
+
+  .side-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 240px;
+    flex-shrink: 0;
+    padding: 24px 16px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right: 1px solid var(--glass-border);
+  }
+
+  .split-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .split-main {
+    order: 1;
+    min-width: 0;
+  }
+
+  .split-aside {
+    order: 2;
+    position: sticky;
+    top: 88px; /* clears the sticky .app-header */
+  }
+
+  .cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  }
+
+  .actions-row {
+    max-width: 440px;
+  }
+
+  .theme-toggle--floating {
+    top: 16px;
+    right: 88px; /* clear of the header logout button */
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+}
+
+/* Hover affordances for pointer devices (mobile only has :active today) */
+@media (hover: hover) {
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+
+  .btn-secondary:hover {
+    background: var(--glass-highlight);
+  }
+
+  .bottom-nav-item:hover {
+    color: var(--text-primary);
+  }
+}
+
+/* Mobile search suggestion results style */
+.suggestions-list {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+
+.suggestion-item {
+  padding: 12px;
+  border-bottom: 1px solid var(--glass-border);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:active {
+  background: var(--glass-highlight);
+}

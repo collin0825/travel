@@ -1,0 +1,21 @@
+import { apiClient } from './client';
+import type { AuthToken, LoginPayload, RegisterPayload, ResetPasswordPayload, User } from '@/types';
+
+export const login = async (payload: LoginPayload): Promise<AuthToken> => {
+  const { data } = await apiClient.post<AuthToken>('/api/auth/login', payload);
+  return data;
+};
+
+export const register = async (payload: RegisterPayload): Promise<User> => {
+  const { data } = await apiClient.post<User>('/api/auth/register', payload);
+  return data;
+};
+
+export const resetPassword = async (payload: ResetPasswordPayload): Promise<void> => {
+  await apiClient.post('/api/auth/reset-password', payload);
+};
+
+export const getMe = async (): Promise<User> => {
+  const { data } = await apiClient.get<User>('/api/auth/me');
+  return data;
+};

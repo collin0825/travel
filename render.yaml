@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: travel-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    healthCheckPath: /health
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: SECRET_KEY
+        generateValue: true          # Render 自動產生隨機值
+      - key: ACCESS_TOKEN_EXPIRE_DAYS
+        value: "30"
+      - key: DATABASE_URL
+        sync: false                  # 在 Dashboard 手動填 Supabase Session pooler 連線字串
+      - key: CORS_ORIGINS
+        sync: false                  # 部署完前端後回填 Vercel 網址
