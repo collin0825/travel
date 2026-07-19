@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, KeyRound, LogOut, Plus, Users } from 'lucide-react';
+import { Calendar, LogOut, Plus, Users } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useAuthStore, useItinerariesStore } from '@/stores';
 import type { ItinerarySummary } from '@/types';
-import ChangePasswordModal from '@/features/auth/components/ChangePasswordModal';
+import ProfileModal from '@/features/auth/components/ProfileModal';
 import { useItineraryList } from '../hooks/useItineraryList';
 import TripCard from './TripCard';
 import CreateTripModal from './CreateTripModal';
@@ -20,7 +20,7 @@ const ItineraryListPage: React.FC = () => {
 
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [editingTrip, setEditingTrip] = useState<ItinerarySummary | null>(null);
 
   const openTrip = (id: number) => navigate(`/trips/${id}`);
@@ -53,7 +53,22 @@ const ItineraryListPage: React.FC = () => {
       <ThemeToggle variant="floating" className="desktop-only" />
 
       <div className="app-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <button
+          onClick={() => setShowProfile(true)}
+          title="編輯個人資料"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: 0,
+            textAlign: 'left',
+            color: 'inherit',
+            fontFamily: 'inherit',
+          }}
+        >
           <img
             src={
               user?.avatar_url ||
@@ -69,37 +84,24 @@ const ItineraryListPage: React.FC = () => {
           />
           <div>
             <div style={{ fontSize: '14px', fontWeight: 700 }}>{user?.display_name}</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>歡迎回來</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+              歡迎回來 · 點擊編輯個人資料
+            </div>
           </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <button
-            onClick={() => setShowChangePassword(true)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              padding: '6px',
-            }}
-            title="修改密碼"
-          >
-            <KeyRound size={20} />
-          </button>
-          <button
-            onClick={handleLogout}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              padding: '6px',
-            }}
-            title="登出"
-          >
-            <LogOut size={20} />
-          </button>
-        </div>
+        </button>
+        <button
+          onClick={handleLogout}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            padding: '6px',
+          }}
+          title="登出"
+        >
+          <LogOut size={20} />
+        </button>
       </div>
 
       <div className="content-area">
@@ -163,7 +165,7 @@ const ItineraryListPage: React.FC = () => {
           onCreated={() => setEditingTrip(null)}
         />
       )}
-      {showChangePassword && <ChangePasswordModal onClose={() => setShowChangePassword(false)} />}
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
       {showJoin && (
         <JoinTripModal
           onClose={() => setShowJoin(false)}

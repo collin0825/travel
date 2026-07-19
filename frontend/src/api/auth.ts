@@ -5,6 +5,7 @@ import type {
   LoginPayload,
   RegisterPayload,
   ResetPasswordPayload,
+  UpdateProfilePayload,
   User,
 } from '@/types';
 
@@ -28,5 +29,10 @@ export const changePassword = async (payload: ChangePasswordPayload): Promise<vo
 
 export const getMe = async (): Promise<User> => {
   const { data } = await apiClient.get<User>('/api/auth/me');
+  return data;
+};
+
+export const updateProfile = async (payload: UpdateProfilePayload): Promise<User> => {
+  const { data } = await apiClient.put<User>('/api/auth/me', payload);
   return data;
 };

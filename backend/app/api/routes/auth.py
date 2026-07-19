@@ -75,3 +75,21 @@ def change_password(
 @router.get("/me", response_model=schemas.UserResponse)
 def get_me(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+
+@router.put("/me", response_model=schemas.UserResponse)
+def update_me(
+    payload: schemas.UserProfileUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if payload.display_name is not None:
+        if not payload.display_name.strip():
+            raise HTTPException(status_code=400, detail="Display name cannot be empty")
+        current_user.display_name = payload.display_name.strip()
+    if payload.avatar_url is not None:
+        current_user.avatar_url = payload.avatar_url
+
+    db.commit()
+    db.refresh(current_user)
+    return current_user

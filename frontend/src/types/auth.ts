@@ -23,6 +23,12 @@ export interface ChangePasswordPayload {
   new_password: string;
 }
 
+/** Partial profile update; omitted fields are left unchanged. */
+export interface UpdateProfilePayload {
+  display_name?: string;
+  avatar_url?: string;
+}
+
 export interface AuthToken {
   access_token: string;
   token_type: string;

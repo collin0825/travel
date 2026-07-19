@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { authApi, clearToken, getToken, setToken } from '@/api';
-import type { LoginPayload, RegisterPayload, User } from '@/types';
+import type { LoginPayload, RegisterPayload, UpdateProfilePayload, User } from '@/types';
 
 export type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -11,6 +11,7 @@ interface AuthState {
   loadUser: () => Promise<void>;
   login: (payload: LoginPayload) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
+  updateProfile: (payload: UpdateProfilePayload) => Promise<void>;
   logout: () => void;
   /** Clears in-memory auth state (used by the 401 handler). */
   reset: () => void;
@@ -50,6 +51,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     setToken(token.access_token);
     const user = await authApi.getMe();
     set({ user, status: 'authenticated' });
+  },
+
+  updateProfile: async (payload) => {
+    const user = await authApi.updateProfile(payload);
+    set({ user });
   },
 
   logout: () => {

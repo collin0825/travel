@@ -33,3 +33,10 @@ class PasswordResetRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str
+
+
+class UserProfileUpdate(BaseModel):
+    """Partial profile update; omitted fields are left unchanged."""
+
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None

@@ -7,6 +7,7 @@ from app.schemas.user import (
     UserResponse,
     PasswordResetRequest,
     ChangePasswordRequest,
+    UserProfileUpdate,
 )
 from app.schemas.token import Token, TokenData
 from app.schemas.itinerary import (
@@ -31,6 +32,7 @@ __all__ = [
     "UserResponse",
     "PasswordResetRequest",
     "ChangePasswordRequest",
+    "UserProfileUpdate",
     "Token",
     "TokenData",
     "ItineraryItemBase",
