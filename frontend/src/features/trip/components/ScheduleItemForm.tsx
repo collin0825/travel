@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useTripStore } from '@/stores';
 import type { ItineraryItem, NominatimSuggestion } from '@/types';
 import { useLocationSearch } from '../hooks/useLocationSearch';
+import { TRANSPORT_MODES } from '../transportModes';
 import LocationAutocomplete from './LocationAutocomplete';
 
 interface ScheduleItemFormProps {
@@ -23,8 +24,15 @@ const ScheduleItemForm: React.FC<ScheduleItemFormProps> = ({
 }) => {
   const addItem = useTripStore((state) => state.addItem);
   const updateItem = useTripStore((state) => state.updateItem);
+  const trip = useTripStore((state) => state.trip);
   const { suggestions, loading: loadingSuggestions, search, clearSuggestions } = useLocationSearch();
   const isEditing = item !== undefined;
+
+  const dayCount = (() => {
+    if (!trip?.start_date || !trip?.end_date) return 1;
+    const diff = Math.abs(new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime());
+    return Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1 || 1;
+  })();
 
   const [name, setName] = useState(item?.name ?? '');
   const [searchQuery, setSearchQuery] = useState(item?.name ?? '');
@@ -34,6 +42,9 @@ const ScheduleItemForm: React.FC<ScheduleItemFormProps> = ({
   const [lat, setLat] = useState<number | null>(item?.latitude ?? null);
   const [lng, setLng] = useState<number | null>(item?.longitude ?? null);
   const [note, setNote] = useState(item?.description ?? '');
+  const [transportMode, setTransportMode] = useState(item?.transport_mode ?? '');
+  const [transportNote, setTransportNote] = useState(item?.transport_note ?? '');
+  const [editDay, setEditDay] = useState(item?.day_number ?? dayNumber);
   const [submitting, setSubmitting] = useState(false);
 
   const handleQueryChange = (query: string) => {
@@ -59,16 +70,28 @@ const ScheduleItemForm: React.FC<ScheduleItemFormProps> = ({
     setSubmitting(true);
     try {
       if (isEditing) {
+        // Moving to another day appends the item at that day's end.
+        const dayChanged = editDay !== item.day_number;
+        const targetDayMax = dayChanged
+          ? Math.max(
+              -1,
+              ...(trip?.items ?? [])
+                .filter((it) => it.day_number === editDay)
+                .map((it) => it.sort_order),
+            )
+          : null;
         await updateItem(item.id, {
-          day_number: item.day_number,
+          day_number: editDay,
           name,
           description: note || null,
           address: address || null,
           latitude: lat,
           longitude: lng,
           time: time || null,
+          transport_mode: transportMode || null,
+          transport_note: transportNote || null,
           cost: parseFloat(cost) || 0,
-          sort_order: item.sort_order,
+          sort_order: targetDayMax !== null ? targetDayMax + 1 : item.sort_order,
         });
       } else {
         await addItem(itineraryId, {
@@ -79,6 +102,8 @@ const ScheduleItemForm: React.FC<ScheduleItemFormProps> = ({
           latitude: lat,
           longitude: lng,
           time: time || null,
+          transport_mode: transportMode || null,
+          transport_note: transportNote || null,
           cost: parseFloat(cost) || 0,
         });
       }
@@ -104,6 +129,23 @@ const ScheduleItemForm: React.FC<ScheduleItemFormProps> = ({
           onSelect={handleSelectSuggestion}
         />
 
+        {isEditing && dayCount > 1 && (
+          <div>
+            <label style={labelStyle}>天數</label>
+            <select
+              className="glass-input"
+              value={editDay}
+              onChange={(e) => setEditDay(Number(e.target.value))}
+            >
+              {Array.from({ length: dayCount }, (_, i) => i + 1).map((day) => (
+                <option key={day} value={day}>
+                  Day {day}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
           <div>
             <label style={labelStyle}>抵達時間</label>
@@ -122,6 +164,34 @@ const ScheduleItemForm: React.FC<ScheduleItemFormProps> = ({
               className="glass-input"
               value={cost}
               onChange={(e) => setCost(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div>
+            <label style={labelStyle}>前往方式 (選填)</label>
+            <select
+              className="glass-input"
+              value={transportMode}
+              onChange={(e) => setTransportMode(e.target.value)}
+            >
+              <option value="">未指定</option>
+              {TRANSPORT_MODES.map((mode) => (
+                <option key={mode.value} value={mode.value}>
+                  {mode.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>交通備註 (選填)</label>
+            <input
+              type="text"
+              placeholder="如：約20分鐘 / 搭乘山手線"
+              className="glass-input"
+              value={transportNote}
+              onChange={(e) => setTransportNote(e.target.value)}
             />
           </div>
         </div>

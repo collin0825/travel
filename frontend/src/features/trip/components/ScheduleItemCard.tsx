@@ -1,11 +1,14 @@
 import React from 'react';
 import { Clock, MapPin, Navigation, Pencil, Trash2 } from 'lucide-react';
 import type { ItineraryItem } from '@/types';
+import { findTransportMode } from '../transportModes';
 
 interface ScheduleItemCardProps {
   item: ItineraryItem;
   onEdit: (item: ItineraryItem) => void;
   onDelete: (itemId: number) => void;
+  /** Viewers see the card without edit/delete buttons. */
+  readOnly?: boolean;
 }
 
 const buildMapsUrl = (item: ItineraryItem): string => {
@@ -16,8 +19,34 @@ const buildMapsUrl = (item: ItineraryItem): string => {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 };
 
-const ScheduleItemCard: React.FC<ScheduleItemCardProps> = ({ item, onEdit, onDelete }) => (
+const TransportPill: React.FC<{ item: ItineraryItem }> = ({ item }) => {
+  const mode = findTransportMode(item.transport_mode);
+  if (!mode) return null;
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        alignSelf: 'flex-start',
+        background: 'rgba(255, 255, 255, 0.04)',
+        border: '1px solid var(--glass-border)',
+        borderRadius: '999px',
+        padding: '3px 10px',
+        fontSize: '11px',
+        color: 'var(--text-secondary)',
+      }}
+    >
+      <mode.Icon size={12} />
+      {mode.label}
+      {item.transport_note && <span>· {item.transport_note}</span>}
+    </div>
+  );
+};
+
+const ScheduleItemCard: React.FC<ScheduleItemCardProps> = ({ item, onEdit, onDelete, readOnly }) => (
   <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+    <TransportPill item={item} />
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
       <div style={{ display: 'flex', gap: '10px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '46px' }}>
@@ -56,6 +85,7 @@ const ScheduleItemCard: React.FC<ScheduleItemCardProps> = ({ item, onEdit, onDel
         </div>
       </div>
 
+      {!readOnly && (
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '2px' }}>
         <button
           onClick={() => onEdit(item)}
@@ -84,6 +114,7 @@ const ScheduleItemCard: React.FC<ScheduleItemCardProps> = ({ item, onEdit, onDel
           <Trash2 size={16} />
         </button>
       </div>
+      )}
     </div>
 
     {item.description && (

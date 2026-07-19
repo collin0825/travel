@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app import schemas
 from app.api.deps import get_current_user
+from app.api.permissions import require_member
 from app.db import models
 from app.db.session import get_db
 from app.services.debts import calculate_settlements
@@ -12,12 +13,9 @@ from app.websocket import manager
 
 router = APIRouter(prefix="/api/itineraries", tags=["expenses"])
 
-
-def _require_membership(db: Session, itinerary_id: int, user: models.User) -> models.Itinerary:
-    itinerary = db.query(models.Itinerary).filter(models.Itinerary.id == itinerary_id).first()
-    if not itinerary or user not in itinerary.members:
-        raise HTTPException(status_code=403, detail="Unauthorized")
-    return itinerary
+# Expenses intentionally stay membership-only: viewers may participate in
+# cost splitting even though the rest of the trip is read-only for them.
+_require_membership = require_member
 
 
 @router.post("/{itinerary_id}/expenses", response_model=schemas.ExpenseResponse)

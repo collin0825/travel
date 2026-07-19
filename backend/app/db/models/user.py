@@ -5,12 +5,15 @@ from sqlalchemy.orm import relationship
 
 from app.db.base import Base
 
-# Junction table: which users belong to which itineraries.
+# Junction table: which users belong to which itineraries, and with what role.
+# The trip creator (itineraries.created_by) is the implicit owner regardless of
+# this row's role.
 itinerary_members = Table(
     "itinerary_members",
     Base.metadata,
     Column("itinerary_id", Integer, ForeignKey("itineraries.id", ondelete="CASCADE"), primary_key=True),
     Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("role", String(20), nullable=False, server_default="editor"),  # 'editor' | 'viewer'
 )
 
 

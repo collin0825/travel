@@ -1,22 +1,14 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException
+﻿from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app import schemas
 from app.api.deps import get_current_user
+from app.api.permissions import require_editor
 from app.db import models
 from app.db.session import get_db
 from app.websocket import manager
 
 router = APIRouter(prefix="/api/itineraries", tags=["items"])
-
-
-def _require_membership(db: Session, itinerary_id: int, user: models.User) -> models.Itinerary:
-    itinerary = db.query(models.Itinerary).filter(models.Itinerary.id == itinerary_id).first()
-    if not itinerary or user not in itinerary.members:
-        raise HTTPException(status_code=403, detail="Unauthorized")
-    return itinerary
 
 
 @router.post("/{itinerary_id}/items", response_model=schemas.ItineraryItemResponse)
@@ -26,19 +18,33 @@ async def create_itinerary_item(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _require_membership(db, itinerary_id, current_user)
+    require_editor(db, itinerary_id, current_user)
 
-    # Append to the end of that day's list.
-    last_item = (
+    day_items = (
         db.query(models.ItineraryItem)
         .filter(
             models.ItineraryItem.itinerary_id == itinerary_id,
             models.ItineraryItem.day_number == item_in.day_number,
         )
-        .order_by(models.ItineraryItem.sort_order.desc())
-        .first()
+        .order_by(models.ItineraryItem.sort_order)
+        .all()
     )
-    sort_order = last_item.sort_order + 1 if last_item else 0
+
+    # A timed item slots in before the first later-timed item; untimed items
+    # (and timeless new items) keep append-to-end behavior.
+    insert_at = None
+    if item_in.time:
+        for index, existing in enumerate(day_items):
+            if existing.time and existing.time > item_in.time:
+                insert_at = index
+                break
+
+    if insert_at is not None:
+        sort_order = day_items[insert_at].sort_order
+        for existing in day_items[insert_at:]:
+            existing.sort_order += 1
+    else:
+        sort_order = day_items[-1].sort_order + 1 if day_items else 0
 
     new_item = models.ItineraryItem(
         itinerary_id=itinerary_id,
@@ -49,6 +55,8 @@ async def create_itinerary_item(
         latitude=item_in.latitude,
         longitude=item_in.longitude,
         time=item_in.time,
+        transport_mode=item_in.transport_mode,
+        transport_note=item_in.transport_note,
         cost=item_in.cost,
         sort_order=sort_order,
     )
@@ -71,7 +79,7 @@ async def update_itinerary_item(
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    itinerary = _require_membership(db, item.itinerary_id, current_user)
+    itinerary = require_editor(db, item.itinerary_id, current_user)
 
     item.day_number = item_in.day_number
     item.name = item_in.name
@@ -80,6 +88,8 @@ async def update_itinerary_item(
     item.latitude = item_in.latitude
     item.longitude = item_in.longitude
     item.time = item_in.time
+    item.transport_mode = item_in.transport_mode
+    item.transport_note = item_in.transport_note
     item.cost = item_in.cost
     item.sort_order = item_in.sort_order
 
@@ -100,7 +110,7 @@ async def delete_itinerary_item(
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    itinerary = _require_membership(db, item.itinerary_id, current_user)
+    itinerary = require_editor(db, item.itinerary_id, current_user)
 
     db.delete(item)
     db.commit()
@@ -112,17 +122,18 @@ async def delete_itinerary_item(
 @router.put("/{itinerary_id}/items/reorder")
 async def reorder_itinerary_items(
     itinerary_id: int,
-    reorder_in: List[int],  # item IDs in desired order
+    reorder_in: schemas.ItemsReorderRequest,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _require_membership(db, itinerary_id, current_user)
+    require_editor(db, itinerary_id, current_user)
 
-    for index, item_id in enumerate(reorder_in):
-        db.query(models.ItineraryItem).filter(
-            models.ItineraryItem.id == item_id,
-            models.ItineraryItem.itinerary_id == itinerary_id,
-        ).update({"sort_order": index})
+    for day in reorder_in.days:
+        for index, item_id in enumerate(day.item_ids):
+            db.query(models.ItineraryItem).filter(
+                models.ItineraryItem.id == item_id,
+                models.ItineraryItem.itinerary_id == itinerary_id,
+            ).update({"day_number": day.day_number, "sort_order": index})
 
     db.commit()
     await manager.broadcast_to_room(itinerary_id, {"type": "refresh_itinerary"})

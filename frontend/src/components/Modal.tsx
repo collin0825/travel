@@ -4,6 +4,7 @@ interface ModalProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  maxWidth?: number;
 }
 
 const overlayStyle: React.CSSProperties = {
@@ -17,11 +18,11 @@ const overlayStyle: React.CSSProperties = {
   zIndex: 1000,
 };
 
-const Modal: React.FC<ModalProps> = ({ title, onClose, children }) => (
+const Modal: React.FC<ModalProps> = ({ title, onClose, children, maxWidth = 360 }) => (
   <div style={overlayStyle} onClick={onClose}>
     <div
       className="glass-card"
-      style={{ width: '100%', maxWidth: '360px' }}
+      style={{ width: '100%', maxWidth: `${maxWidth}px` }}
       onClick={(e) => e.stopPropagation()}
     >
       <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px' }}>{title}</h3>

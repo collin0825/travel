@@ -21,6 +21,8 @@ const NotesPanel: React.FC = () => {
 
   const notes = trip?.notes ?? [];
   const activeNote = notes.find((note) => note.id === activeNoteId) ?? null;
+  // Server enforces permissions; this only hides editing affordances for viewers.
+  const canEdit = trip?.my_role !== 'viewer';
 
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -52,6 +54,7 @@ const NotesPanel: React.FC = () => {
         note={activeNote}
         currentUserId={user?.id}
         onBack={() => setActiveNoteId(null)}
+        readOnly={!canEdit}
       />
     );
   }
@@ -75,6 +78,7 @@ const NotesPanel: React.FC = () => {
       </div>
 
       <div className="content-area">
+        {canEdit && (
         <div className="actions-row">
           {!showAddForm ? (
             <button
@@ -122,6 +126,7 @@ const NotesPanel: React.FC = () => {
             </div>
           )}
         </div>
+        )}
 
         {notes.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-secondary)' }}>
@@ -174,18 +179,20 @@ const NotesPanel: React.FC = () => {
                   </span>
                 </div>
 
-                <button
-                  onClick={(e) => handleDelete(e, note.id)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    padding: '6px',
-                  }}
-                >
-                  <Trash2 size={16} />
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={(e) => handleDelete(e, note.id)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      padding: '6px',
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
             ))}
           </div>

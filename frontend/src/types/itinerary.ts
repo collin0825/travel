@@ -1,4 +1,4 @@
-import type { Member } from './user';
+import type { Member, MemberRole } from './user';
 import type { Expense } from './expense';
 import type { Note } from './note';
 
@@ -12,6 +12,8 @@ export interface ItineraryItem {
   latitude: number | null;
   longitude: number | null;
   time: string | null; // "HH:MM"
+  transport_mode: string | null;
+  transport_note: string | null;
   cost: number;
   sort_order: number;
   created_at: string;
@@ -28,6 +30,7 @@ export interface ItinerarySummary {
   created_by: number | null;
   created_at: string;
   members: Member[];
+  my_role: MemberRole | null;
 }
 
 /** Shape returned by GET /api/itineraries/:id (full detail view). */
@@ -39,6 +42,7 @@ export interface TripDetail {
   end_date: string | null;
   invite_code: string;
   created_by: number | null;
+  my_role: MemberRole | null;
   members: Member[];
   items: ItineraryItem[];
   expenses: Expense[];
@@ -67,6 +71,8 @@ export interface CreateItineraryItemPayload {
   latitude?: number | null;
   longitude?: number | null;
   time?: string | null;
+  transport_mode?: string | null;
+  transport_note?: string | null;
   cost?: number;
 }
 
@@ -79,8 +85,16 @@ export interface UpdateItineraryItemPayload {
   latitude: number | null;
   longitude: number | null;
   time: string | null;
+  transport_mode: string | null;
+  transport_note: string | null;
   cost: number;
   sort_order: number;
+}
+
+/** One day's item ordering; used by PUT /api/itineraries/:id/items/reorder. */
+export interface DayOrderPayload {
+  day_number: number;
+  item_ids: number[];
 }
 
 /** OpenStreetMap Nominatim search result. */

@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 @import 'tailwindcss';
+@import 'react-day-picker/style.css';
 
 /* Tailwind v4 theme tokens mapped to the existing design system.
    Use `bg-accent`, `text-primary`, etc. in new components; the legacy
@@ -546,4 +547,26 @@ body {
 
 .suggestion-item:active {
   background: var(--glass-highlight);
+}
+
+/* react-day-picker themed to match the glass design system */
+.rdp-root {
+  --rdp-accent-color: var(--accent-color);
+  --rdp-accent-background-color: var(--glass-highlight);
+  --rdp-range_middle-background-color: var(--glass-highlight);
+  --rdp-range_middle-color: var(--text-primary);
+  --rdp-range_start-color: #ffffff;
+  --rdp-range_end-color: #ffffff;
+  --rdp-selected-border: 2px solid var(--accent-color);
+  --rdp-today-color: var(--accent-color);
+  --rdp-day-width: 36px;
+  --rdp-day-height: 36px;
+  --rdp-day_button-width: 34px;
+  --rdp-day_button-height: 34px;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.rdp-chevron {
+  fill: var(--text-secondary);
 }

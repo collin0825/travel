@@ -92,9 +92,11 @@ const TripCard: React.FC<TripCardProps> = ({ trip, onSelect, onEdit, onLeave, on
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-        <button onClick={handleEdit} style={iconButtonStyle} title="編輯行程">
-          <Pencil size={16} />
-        </button>
+        {trip.my_role !== 'viewer' && (
+          <button onClick={handleEdit} style={iconButtonStyle} title="編輯行程">
+            <Pencil size={16} />
+          </button>
+        )}
         <button
           onClick={handleLeave}
           style={{ ...iconButtonStyle, color: 'var(--warning-color)' }}
@@ -102,13 +104,15 @@ const TripCard: React.FC<TripCardProps> = ({ trip, onSelect, onEdit, onLeave, on
         >
           <LogOut size={16} />
         </button>
-        <button
-          onClick={handleDelete}
-          style={{ ...iconButtonStyle, color: 'var(--danger-color)' }}
-          title="刪除行程"
-        >
-          <Trash2 size={16} />
-        </button>
+        {trip.my_role === 'owner' && (
+          <button
+            onClick={handleDelete}
+            style={{ ...iconButtonStyle, color: 'var(--danger-color)' }}
+            title="刪除行程"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
       </div>
     </div>
   );

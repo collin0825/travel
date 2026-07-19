@@ -2,6 +2,7 @@ import { apiClient } from './client';
 import type {
   CreateItineraryItemPayload,
   CreateItineraryPayload,
+  DayOrderPayload,
   ItinerarySummary,
   ItineraryItem,
   JoinItineraryPayload,
@@ -74,4 +75,23 @@ export const updateItineraryItem = async (
 
 export const deleteItineraryItem = async (itemId: number): Promise<void> => {
   await apiClient.delete(`/api/itineraries/items/${itemId}`);
+};
+
+export const reorderItems = async (
+  itineraryId: number,
+  days: DayOrderPayload[],
+): Promise<void> => {
+  await apiClient.put(`/api/itineraries/${itineraryId}/items/reorder`, { days });
+};
+
+export const updateMemberRole = async (
+  itineraryId: number,
+  userId: number,
+  role: 'editor' | 'viewer',
+): Promise<void> => {
+  await apiClient.put(`/api/itineraries/${itineraryId}/members/${userId}`, { role });
+};
+
+export const removeMember = async (itineraryId: number, userId: number): Promise<void> => {
+  await apiClient.delete(`/api/itineraries/${itineraryId}/members/${userId}`);
 };

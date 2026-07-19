@@ -28,3 +28,8 @@ class PasswordResetRequest(BaseModel):
     email: EmailStr
     display_name: str
     new_password: str
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str

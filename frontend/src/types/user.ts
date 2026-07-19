@@ -6,5 +6,10 @@ export interface User {
   created_at: string;
 }
 
-/** Lightweight member reference embedded in itinerary payloads. */
-export type Member = User;
+export type MemberRole = 'owner' | 'editor' | 'viewer';
+
+/** Member reference embedded in itinerary payloads, with trip role. */
+export type Member = User & {
+  role: MemberRole;
+  is_owner: boolean;
+};

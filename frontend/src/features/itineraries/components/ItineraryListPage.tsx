@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, LogOut, Plus, Users } from 'lucide-react';
+import { Calendar, KeyRound, LogOut, Plus, Users } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useAuthStore, useItinerariesStore } from '@/stores';
 import type { ItinerarySummary } from '@/types';
+import ChangePasswordModal from '@/features/auth/components/ChangePasswordModal';
 import { useItineraryList } from '../hooks/useItineraryList';
 import TripCard from './TripCard';
 import CreateTripModal from './CreateTripModal';
@@ -19,6 +20,7 @@ const ItineraryListPage: React.FC = () => {
 
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [editingTrip, setEditingTrip] = useState<ItinerarySummary | null>(null);
 
   const openTrip = (id: number) => navigate(`/trips/${id}`);
@@ -34,7 +36,10 @@ const ItineraryListPage: React.FC = () => {
     if (!window.confirm(`確定要退出「${trip.title}」嗎？行程會保留給其他成員，之後需要邀請碼才能重新加入。`)) {
       return;
     }
-    void leaveItinerary(trip.id);
+    // The backend rejects the creator leaving while other members remain.
+    leaveItinerary(trip.id).catch((err) => {
+      window.alert((err as Error).message || '退出失敗，請稍後再試');
+    });
   };
 
   const handleLogout = () => {
@@ -67,19 +72,34 @@ const ItineraryListPage: React.FC = () => {
             <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>歡迎回來</div>
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            padding: '6px',
-          }}
-          title="登出"
-        >
-          <LogOut size={20} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <button
+            onClick={() => setShowChangePassword(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              padding: '6px',
+            }}
+            title="修改密碼"
+          >
+            <KeyRound size={20} />
+          </button>
+          <button
+            onClick={handleLogout}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              padding: '6px',
+            }}
+            title="登出"
+          >
+            <LogOut size={20} />
+          </button>
+        </div>
       </div>
 
       <div className="content-area">
@@ -143,6 +163,7 @@ const ItineraryListPage: React.FC = () => {
           onCreated={() => setEditingTrip(null)}
         />
       )}
+      {showChangePassword && <ChangePasswordModal onClose={() => setShowChangePassword(false)} />}
       {showJoin && (
         <JoinTripModal
           onClose={() => setShowJoin(false)}

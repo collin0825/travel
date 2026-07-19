@@ -5,18 +5,12 @@ from sqlalchemy.orm import Session
 
 from app import schemas
 from app.api.deps import get_current_user
+from app.api.permissions import require_editor
 from app.db import models
 from app.db.session import get_db
 from app.websocket import manager
 
 router = APIRouter(prefix="/api/itineraries", tags=["notes"])
-
-
-def _require_membership(db: Session, itinerary_id: int, user: models.User) -> models.Itinerary:
-    itinerary = db.query(models.Itinerary).filter(models.Itinerary.id == itinerary_id).first()
-    if not itinerary or user not in itinerary.members:
-        raise HTTPException(status_code=403, detail="Unauthorized")
-    return itinerary
 
 
 @router.post("/{itinerary_id}/notes", response_model=schemas.NoteResponse)
@@ -26,7 +20,7 @@ async def create_note(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _require_membership(db, itinerary_id, current_user)
+    require_editor(db, itinerary_id, current_user)
 
     new_note = models.Note(
         itinerary_id=itinerary_id,
@@ -53,7 +47,7 @@ async def update_note(
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
 
-    itinerary = _require_membership(db, note.itinerary_id, current_user)
+    itinerary = require_editor(db, note.itinerary_id, current_user)
 
     note.title = note_in.title
     note.content = note_in.content
@@ -85,7 +79,7 @@ async def delete_note(
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
 
-    itinerary = _require_membership(db, note.itinerary_id, current_user)
+    itinerary = require_editor(db, note.itinerary_id, current_user)
 
     db.delete(note)
     db.commit()

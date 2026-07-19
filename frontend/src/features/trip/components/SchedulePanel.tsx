@@ -1,6 +1,25 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Plus, RefreshCw } from 'lucide-react';
+import { ArrowLeft, MapPin, Plus, RefreshCw, Users } from 'lucide-react';
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  pointerWithin,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { CollisionDetection, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { useTripStore } from '@/stores';
 import type { ItineraryItem } from '@/types';
 import { useTripContext } from '../context';
@@ -8,6 +27,8 @@ import InviteCode from './InviteCode';
 import PresenceBar from './PresenceBar';
 import ScheduleItemForm from './ScheduleItemForm';
 import ScheduleItemCard from './ScheduleItemCard';
+import SortableScheduleItem from './SortableScheduleItem';
+import MembersModal from './MembersModal';
 
 const getDayCount = (start: string | null, end: string | null): number => {
   if (!start || !end) return 1;
@@ -16,13 +37,48 @@ const getDayCount = (start: string | null, end: string | null): number => {
   return days || 1;
 };
 
-const sortByTime = (items: ItineraryItem[]): ItineraryItem[] =>
-  [...items].sort((a, b) => {
-    if (a.time && b.time) return a.time.localeCompare(b.time);
-    if (a.time) return -1;
-    if (b.time) return 1;
-    return a.sort_order - b.sort_order;
-  });
+/** Manual order is the display source of truth; time is a label only. */
+const sortByOrder = (items: ItineraryItem[]): ItineraryItem[] =>
+  [...items].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
+
+const dayDroppableId = (day: number) => `day-${day}`;
+
+/** Prefer whatever is directly under the pointer (day tabs), else closest item. */
+const collisionDetection: CollisionDetection = (args) => {
+  const withPointer = pointerWithin(args);
+  return withPointer.length > 0 ? withPointer : closestCenter(args);
+};
+
+interface DayTabProps {
+  day: number;
+  selected: boolean;
+  dragging: boolean;
+  onSelect: (day: number) => void;
+}
+
+const DayTabDroppable: React.FC<DayTabProps> = ({ day, selected, dragging, onSelect }) => {
+  const { isOver, setNodeRef } = useDroppable({ id: dayDroppableId(day) });
+  return (
+    <button
+      ref={setNodeRef}
+      onClick={() => onSelect(day)}
+      style={{
+        padding: '8px 16px',
+        borderRadius: '12px',
+        border:
+          dragging && isOver ? '1px dashed var(--accent-color)' : '1px solid var(--glass-border)',
+        background: selected ? 'var(--accent-gradient)' : 'var(--glass-bg)',
+        color: selected ? 'white' : 'var(--text-primary)',
+        fontWeight: 600,
+        fontSize: '14px',
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      Day {day}
+    </button>
+  );
+};
 
 const SchedulePanel: React.FC = () => {
   const navigate = useNavigate();
@@ -30,10 +86,22 @@ const SchedulePanel: React.FC = () => {
   const trip = useTripStore((state) => state.trip);
   const refresh = useTripStore((state) => state.refresh);
   const removeItem = useTripStore((state) => state.removeItem);
+  const reorderItems = useTripStore((state) => state.reorderItems);
 
   const [selectedDay, setSelectedDay] = useState(1);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
+  const [activeItem, setActiveItem] = useState<ItineraryItem | null>(null);
+  const [showMembers, setShowMembers] = useState(false);
+
+  // Server enforces permissions; this only hides editing affordances for viewers.
+  const canEdit = trip?.my_role !== 'viewer';
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const daysList = useMemo(
     () =>
@@ -45,7 +113,7 @@ const SchedulePanel: React.FC = () => {
   );
 
   const sortedItems = useMemo(
-    () => sortByTime((trip?.items ?? []).filter((item) => item.day_number === selectedDay)),
+    () => sortByOrder((trip?.items ?? []).filter((item) => item.day_number === selectedDay)),
     [trip?.items, selectedDay],
   );
 
@@ -57,6 +125,40 @@ const SchedulePanel: React.FC = () => {
   const handleEdit = (item: ItineraryItem) => {
     setShowAddForm(false);
     setEditingItem(item);
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveItem(sortedItems.find((item) => item.id === event.active.id) ?? null);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveItem(null);
+    const { active, over } = event;
+    if (!over || !trip) return;
+
+    const currentIds = sortedItems.map((item) => item.id);
+
+    if (typeof over.id === 'string' && over.id.startsWith('day-')) {
+      const targetDay = Number(over.id.slice(4));
+      if (targetDay === selectedDay) return;
+      // Cross-day move: append the dragged item to the target day's end.
+      const targetIds = sortByOrder(trip.items.filter((item) => item.day_number === targetDay)).map(
+        (item) => item.id,
+      );
+      void reorderItems(trip.id, [
+        { day_number: selectedDay, item_ids: currentIds.filter((id) => id !== active.id) },
+        { day_number: targetDay, item_ids: [...targetIds, Number(active.id)] },
+      ]);
+      return;
+    }
+
+    if (active.id === over.id) return;
+    const oldIndex = currentIds.indexOf(Number(active.id));
+    const newIndex = currentIds.indexOf(Number(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    void reorderItems(trip.id, [
+      { day_number: selectedDay, item_ids: arrayMove(currentIds, oldIndex, newIndex) },
+    ]);
   };
 
   return (
@@ -90,24 +192,46 @@ const SchedulePanel: React.FC = () => {
           </h2>
           {trip && <InviteCode code={trip.invite_code} />}
         </div>
-        <button
-          onClick={() => void refresh()}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            padding: '6px',
-          }}
-          title="同步最新資料"
-        >
-          <RefreshCw size={18} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <button
+            onClick={() => setShowMembers(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              padding: '6px',
+            }}
+            title="行程成員"
+          >
+            <Users size={18} />
+          </button>
+          <button
+            onClick={() => void refresh()}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              padding: '6px',
+            }}
+            title="同步最新資料"
+          >
+            <RefreshCw size={18} />
+          </button>
+        </div>
       </div>
 
       <div className="content-area">
         <PresenceBar users={activeUsers} />
 
+        <DndContext
+          sensors={sensors}
+          collisionDetection={collisionDetection}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={() => setActiveItem(null)}
+        >
         <div
           style={{
             display: 'flex',
@@ -119,29 +243,19 @@ const SchedulePanel: React.FC = () => {
           }}
         >
           {daysList.map((day) => (
-            <button
+            <DayTabDroppable
               key={day}
-              onClick={() => setSelectedDay(day)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '12px',
-                border: '1px solid var(--glass-border)',
-                background: selectedDay === day ? 'var(--accent-gradient)' : 'var(--glass-bg)',
-                color: selectedDay === day ? 'white' : 'var(--text-primary)',
-                fontWeight: 600,
-                fontSize: '14px',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Day {day}
-            </button>
+              day={day}
+              selected={selectedDay === day}
+              dragging={activeItem !== null}
+              onSelect={setSelectedDay}
+            />
           ))}
         </div>
 
         <div className="split-layout">
           <div className="split-aside">
-            {!showAddForm && !editingItem && (
+            {canEdit && !showAddForm && !editingItem && (
               <button
                 className="btn-primary"
                 onClick={() => setShowAddForm(true)}
@@ -152,7 +266,7 @@ const SchedulePanel: React.FC = () => {
               </button>
             )}
 
-            {showAddForm && (
+            {canEdit && showAddForm && (
               <ScheduleItemForm
                 itineraryId={itineraryId}
                 dayNumber={selectedDay}
@@ -160,7 +274,7 @@ const SchedulePanel: React.FC = () => {
               />
             )}
 
-            {editingItem && (
+            {canEdit && editingItem && (
               <ScheduleItemForm
                 key={editingItem.id}
                 item={editingItem}
@@ -181,20 +295,44 @@ const SchedulePanel: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {sortedItems.map((item) => (
-                  <ScheduleItemCard
-                    key={item.id}
-                    item={item}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </div>
+              <SortableContext
+                items={sortedItems.map((item) => item.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {sortedItems.map((item) =>
+                    canEdit ? (
+                      <SortableScheduleItem
+                        key={item.id}
+                        item={item}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                      />
+                    ) : (
+                      <ScheduleItemCard
+                        key={item.id}
+                        item={item}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        readOnly
+                      />
+                    ),
+                  )}
+                </div>
+              </SortableContext>
             )}
           </div>
         </div>
+
+        <DragOverlay>
+          {activeItem && (
+            <ScheduleItemCard item={activeItem} onEdit={() => {}} onDelete={() => {}} />
+          )}
+        </DragOverlay>
+        </DndContext>
       </div>
+
+      {showMembers && <MembersModal onClose={() => setShowMembers(false)} />}
     </div>
   );
 };

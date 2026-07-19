@@ -8,9 +8,11 @@ interface NoteEditorProps {
   note: Note;
   currentUserId: number | undefined;
   onBack: () => void;
+  /** Viewers can read but not edit. */
+  readOnly?: boolean;
 }
 
-const NoteEditor: React.FC<NoteEditorProps> = ({ note, currentUserId, onBack }) => {
+const NoteEditor: React.FC<NoteEditorProps> = ({ note, currentUserId, onBack, readOnly }) => {
   const { lastTyping, lastNoteUpdate, sendTyping } = useTripContext();
   const { title, content, typingLabel, handleChange } = useNoteEditor({
     note,
@@ -48,7 +50,10 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, currentUserId, onBack }) 
         <input
           type="text"
           value={title}
-          onChange={(e) => handleChange(e.target.value, content)}
+          readOnly={readOnly}
+          onChange={(e) => {
+            if (!readOnly) handleChange(e.target.value, content);
+          }}
           placeholder="無標題備忘錄"
           style={{
             background: 'none',
@@ -67,8 +72,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, currentUserId, onBack }) 
 
         <textarea
           value={content}
-          onChange={(e) => handleChange(title, e.target.value)}
-          placeholder="開始輸入筆記內容，內容會自動即時儲存並同步給朋友..."
+          readOnly={readOnly}
+          onChange={(e) => {
+            if (!readOnly) handleChange(title, e.target.value);
+          }}
+          placeholder={readOnly ? '（唯讀）' : '開始輸入筆記內容，內容會自動即時儲存並同步給朋友...'}
           style={{
             background: 'none',
             border: 'none',

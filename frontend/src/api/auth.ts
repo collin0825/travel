@@ -1,5 +1,12 @@
 import { apiClient } from './client';
-import type { AuthToken, LoginPayload, RegisterPayload, ResetPasswordPayload, User } from '@/types';
+import type {
+  AuthToken,
+  ChangePasswordPayload,
+  LoginPayload,
+  RegisterPayload,
+  ResetPasswordPayload,
+  User,
+} from '@/types';
 
 export const login = async (payload: LoginPayload): Promise<AuthToken> => {
   const { data } = await apiClient.post<AuthToken>('/api/auth/login', payload);
@@ -13,6 +20,10 @@ export const register = async (payload: RegisterPayload): Promise<User> => {
 
 export const resetPassword = async (payload: ResetPasswordPayload): Promise<void> => {
   await apiClient.post('/api/auth/reset-password', payload);
+};
+
+export const changePassword = async (payload: ChangePasswordPayload): Promise<void> => {
+  await apiClient.post('/api/auth/change-password', payload);
 };
 
 export const getMe = async (): Promise<User> => {

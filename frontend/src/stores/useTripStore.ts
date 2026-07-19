@@ -4,6 +4,7 @@ import type {
   CreateExpensePayload,
   CreateItineraryItemPayload,
   CreateNotePayload,
+  DayOrderPayload,
   Debt,
   Note,
   TripDetail,
@@ -28,6 +29,11 @@ interface TripState {
   addItem: (itineraryId: number, payload: CreateItineraryItemPayload) => Promise<void>;
   updateItem: (itemId: number, payload: UpdateItineraryItemPayload) => Promise<void>;
   removeItem: (itemId: number) => Promise<void>;
+  /** Optimistically applies the new ordering, then persists it. */
+  reorderItems: (itineraryId: number, days: DayOrderPayload[]) => Promise<void>;
+
+  setMemberRole: (userId: number, role: 'editor' | 'viewer') => Promise<void>;
+  removeMember: (userId: number) => Promise<void>;
 
   addExpense: (itineraryId: number, payload: CreateExpensePayload) => Promise<void>;
   editExpense: (expenseId: number, payload: UpdateExpensePayload) => Promise<void>;
@@ -97,6 +103,48 @@ export const useTripStore = create<TripState>((set, get) => ({
 
   removeItem: async (itemId) => {
     await itinerariesApi.deleteItineraryItem(itemId);
+    await get().refresh();
+  },
+
+  reorderItems: async (itineraryId, days) => {
+    const positions = new Map<number, { day_number: number; sort_order: number }>();
+    for (const day of days) {
+      day.item_ids.forEach((itemId, index) => {
+        positions.set(itemId, { day_number: day.day_number, sort_order: index });
+      });
+    }
+    set((state) =>
+      state.trip
+        ? {
+            trip: {
+              ...state.trip,
+              items: state.trip.items.map((item) => {
+                const next = positions.get(item.id);
+                return next ? { ...item, ...next } : item;
+              }),
+            },
+          }
+        : {},
+    );
+    try {
+      await itinerariesApi.reorderItems(itineraryId, days);
+    } catch (err) {
+      console.error('Failed to reorder items:', err);
+      await get().fetchTrip(itineraryId);
+    }
+  },
+
+  setMemberRole: async (userId, role) => {
+    const id = get().trip?.id;
+    if (id === undefined) return;
+    await itinerariesApi.updateMemberRole(id, userId, role);
+    await get().fetchTrip(id);
+  },
+
+  removeMember: async (userId) => {
+    const id = get().trip?.id;
+    if (id === undefined) return;
+    await itinerariesApi.removeMember(id, userId);
     await get().refresh();
   },
 

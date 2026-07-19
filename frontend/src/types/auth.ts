@@ -18,6 +18,11 @@ export interface ResetPasswordPayload {
   new_password: string;
 }
 
+export interface ChangePasswordPayload {
+  old_password: string;
+  new_password: string;
+}
+
 export interface AuthToken {
   access_token: string;
   token_type: string;

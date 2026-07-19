@@ -39,6 +39,8 @@ class ItineraryItem(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     time = Column(String(10), nullable=True)  # "HH:MM"
+    transport_mode = Column(String(20), nullable=True)  # walk/transit/bus/train/car/taxi/bike/flight/other
+    transport_note = Column(String(255), nullable=True)  # e.g. "約20分鐘" / "搭 JR 山手線"
     cost = Column(Float, default=0.0)
     sort_order = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
