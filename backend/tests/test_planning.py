@@ -1,6 +1,8 @@
 """Run with python -m unittest discover -s tests. Uses only a temporary SQLite DB."""
 import atexit
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from datetime import date, datetime, timezone
@@ -378,6 +380,20 @@ class PlanningTests(unittest.TestCase):
             self.assertEqual(socket.receive_json()["type"], "presence")
             self.assertEqual(self.save({}).status_code, 200)
             self.assertEqual(socket.receive_json()["type"], "refresh_planning")
+
+
+class DatabaseDriverTests(unittest.TestCase):
+    def test_application_starts_with_each_supported_postgres_url(self):
+        # Import the real application in a fresh process, without connecting to
+        # a database, to catch missing DBAPI modules before deployment.
+        for scheme, driver in [("postgresql", "psycopg"), ("postgresql+psycopg", "psycopg"),
+                               ("postgresql+psycopg2", "psycopg2"), ("postgres", "psycopg")]:
+            with self.subTest(scheme=scheme):
+                env = {**os.environ, "DATABASE_URL": f"{scheme}://test:placeholder@localhost/travel"}
+                result = subprocess.run([sys.executable, "-c", "from app.main import app; from app.db.session import engine; print(engine.dialect.driver); engine.dispose()"],
+                                        env=env, capture_output=True, text=True, timeout=20)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout.strip(), driver)
 
 
 if __name__ == "__main__":

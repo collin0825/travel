@@ -246,6 +246,7 @@ Vercel 與 Render 都是從 GitHub repo 部署。本機目前還沒有 git repo�
 |------|------|
 | 前端呼叫 API 出現 **CORS error** | Render 的 `CORS_ORIGINS` 是否**完全等於**前端網址（含 `https://`、無結尾斜線），改完是否已重新部署 |
 | 後端啟動失敗 / **DB 連不上** | 是否用 Supabase **Session pooler** 字串、scheme 是否為 `postgresql+psycopg2://`、密碼是否正確 |
+| `ModuleNotFoundError: No module named 'psycopg'` | SQLAlchemy 2.1 將 `postgresql://` 的預設驅動改為 psycopg 3。本專案已固定 SQLAlchemy 2.1.5，並同時安裝 `psycopg[binary]`、`psycopg2-binary`，支援兩種驅動；請部署包含修正的 commit，讓 Render 重新執行 `pip install -r requirements.txt`。若仍使用舊程式，可只將連線字串前綴明確改成 `postgresql+psycopg2://`，其餘連線內容保持原值。 |
 | WebSocket 連不上 | `VITE_WS_URL` 是否為 `wss://`（非 `ws://`）；改了 `VITE_*` 後是否已在 Vercel 重新 Deploy |
 | 第一次開很慢（約 30 秒） | Render 免費方案休眠喚醒，正常現象 |
 | 改了環境變數沒生效（前端） | `VITE_*` 是 build 時寫死，需在 Vercel 重新 Deploy |
@@ -254,6 +255,7 @@ Vercel 與 Render 都是從 GitHub repo 部署。本機目前還沒有 git repo�
 
 ## 補充
 
+- **資料庫驅動版本**：重新 build 會重新安裝相依套件，未固定版本可能導致同一份程式在不同日期部署時行為不同。SQLAlchemy 現固定於本次已驗證的 2.1.5；升級時需同時驗證 `postgresql://`、`postgresql+psycopg://`、`postgresql+psycopg2://` 與舊式 `postgres://` 的啟動測試。參考 [SQLAlchemy 2.1 驅動變更](https://docs.sqlalchemy.org/en/21/changelog/migration_21.html#default-postgresql-driver-changed-to-psycopg-psycopg-3)。
 - **Vercel Preview 部署**：每個 branch/PR 會有不同預覽網址，那些網址不在 `CORS_ORIGINS` 內會被擋 —— 正式使用以 production 網址為準即可。
 - **保持後端喚醒（選用）**：可用外部 cron（如 cron-job.org）每 10 分鐘打一次 `/health`，減少休眠。非必要。
 - **資料庫 migration**：Supabase 資料表已建好，部署流程**不需**再跑。未來若 schema 有變更，可在 Render 的 Shell 執行 `cd backend && alembic upgrade head`（該指令會讀取 `DATABASE_URL` 環境變數）。
