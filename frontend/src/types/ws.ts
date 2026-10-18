@@ -7,6 +7,7 @@ export interface PresenceUser {
 /** Messages broadcast by the backend over the itinerary WebSocket room. */
 export type ServerWsMessage =
   | { type: 'refresh_itinerary' }
+  | { type: 'refresh_planning' }
   | { type: 'refresh_expenses' }
   | { type: 'refresh_notes' }
   | { type: 'presence'; users: PresenceUser[] }

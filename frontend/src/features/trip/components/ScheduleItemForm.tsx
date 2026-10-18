@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTripStore } from '@/stores';
-import type { ItineraryItem, NominatimSuggestion } from '@/types';
-import { useLocationSearch } from '../hooks/useLocationSearch';
+import type { ItineraryItem } from '@/types';
 import { TRANSPORT_MODES } from '../transportModes';
-import LocationAutocomplete from './LocationAutocomplete';
+import PlacePicker from './PlacePicker';
 
 interface ScheduleItemFormProps {
   itineraryId: number;
@@ -25,7 +24,6 @@ const ScheduleItemForm: React.FC<ScheduleItemFormProps> = ({
   const addItem = useTripStore((state) => state.addItem);
   const updateItem = useTripStore((state) => state.updateItem);
   const trip = useTripStore((state) => state.trip);
-  const { suggestions, loading: loadingSuggestions, search, clearSuggestions } = useLocationSearch();
   const isEditing = item !== undefined;
 
   const dayCount = (() => {
@@ -35,7 +33,6 @@ const ScheduleItemForm: React.FC<ScheduleItemFormProps> = ({
   })();
 
   const [name, setName] = useState(item?.name ?? '');
-  const [searchQuery, setSearchQuery] = useState(item?.name ?? '');
   const [time, setTime] = useState(item?.time ?? '');
   const [cost, setCost] = useState(item?.cost ? String(item.cost) : '');
   const [address, setAddress] = useState(item?.address ?? '');
@@ -46,28 +43,14 @@ const ScheduleItemForm: React.FC<ScheduleItemFormProps> = ({
   const [transportNote, setTransportNote] = useState(item?.transport_note ?? '');
   const [editDay, setEditDay] = useState(item?.day_number ?? dayNumber);
   const [submitting, setSubmitting] = useState(false);
-
-  const handleQueryChange = (query: string) => {
-    setSearchQuery(query);
-    setName(query);
-    search(query);
-  };
-
-  const handleSelectSuggestion = (suggestion: NominatimSuggestion) => {
-    const label = suggestion.display_name.split(',')[0];
-    setName(label);
-    setSearchQuery(label);
-    setAddress(suggestion.display_name);
-    setLat(parseFloat(suggestion.lat));
-    setLng(parseFloat(suggestion.lon));
-    clearSuggestions();
-  };
+  const [error, setError] = useState('');
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!name.trim()) return;
 
     setSubmitting(true);
+    setError('');
     try {
       if (isEditing) {
         // Moving to another day appends the item at that day's end.
@@ -109,7 +92,7 @@ const ScheduleItemForm: React.FC<ScheduleItemFormProps> = ({
       }
       onClose();
     } catch (err) {
-      console.error('Failed to save item:', err);
+      setError(err instanceof Error ? err.message : '儲存失敗');
     } finally {
       setSubmitting(false);
     }
@@ -121,13 +104,10 @@ const ScheduleItemForm: React.FC<ScheduleItemFormProps> = ({
         {isEditing ? `編輯 Day ${item.day_number} 景點 / 活動` : `新增 Day ${dayNumber} 景點 / 活動`}
       </h3>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <LocationAutocomplete
-          value={searchQuery}
-          suggestions={suggestions}
-          loading={loadingSuggestions}
-          onChange={handleQueryChange}
-          onSelect={handleSelectSuggestion}
-        />
+        <PlacePicker itineraryId={itineraryId} label="景點／活動地點" value={name ? { name, address, latitude: lat, longitude: lng } : null} onChange={place => {
+          setName(place?.name || ''); setAddress(place?.address || '');
+          setLat(place?.latitude ?? null); setLng(place?.longitude ?? null);
+        }} />
 
         {isEditing && dayCount > 1 && (
           <div>
@@ -197,17 +177,6 @@ const ScheduleItemForm: React.FC<ScheduleItemFormProps> = ({
         </div>
 
         <div>
-          <label style={labelStyle}>景點地址 (選填)</label>
-          <input
-            type="text"
-            placeholder="地址"
-            className="glass-input"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
-        </div>
-
-        <div>
           <label style={labelStyle}>備註說明 (選填)</label>
           <textarea
             placeholder="如：門票資訊、必吃美食..."
@@ -223,7 +192,6 @@ const ScheduleItemForm: React.FC<ScheduleItemFormProps> = ({
             type="button"
             className="btn-secondary"
             onClick={() => {
-              clearSuggestions();
               onClose();
             }}
           >
@@ -233,6 +201,7 @@ const ScheduleItemForm: React.FC<ScheduleItemFormProps> = ({
             {submitting ? '儲存中...' : '儲存'}
           </button>
         </div>
+        {error && <p className="planning-error" role="alert">{error}</p>}
       </form>
     </div>
   );

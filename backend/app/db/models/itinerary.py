@@ -25,6 +25,7 @@ class Itinerary(Base):
     items = relationship("ItineraryItem", back_populates="itinerary", cascade="all, delete-orphan")
     expenses = relationship("Expense", back_populates="itinerary", cascade="all, delete-orphan")
     notes = relationship("Note", back_populates="itinerary", cascade="all, delete-orphan")
+    planning = relationship("ItineraryPlanning", cascade="all, delete-orphan", uselist=False)
 
 
 class ItineraryItem(Base):

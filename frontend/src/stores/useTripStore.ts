@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { expensesApi, itinerariesApi, notesApi } from '@/api';
+import * as planningApi from '@/api/planning';
+import type { PlanningData, PlanningEnvelope } from '@/api/planning';
 import type {
   CreateExpensePayload,
   CreateItineraryItemPayload,
@@ -17,6 +19,10 @@ interface TripState {
   trip: TripDetail | null;
   debts: Debt[];
   loading: boolean;
+  planning: PlanningEnvelope | null;
+  planningError: string;
+  fetchPlanning: (itineraryId: number) => Promise<void>;
+  savePlanning: (data: PlanningData) => Promise<void>;
 
   /** Full load used when opening a trip (trip detail + settlement). */
   loadTrip: (itineraryId: number) => Promise<void>;
@@ -49,6 +55,29 @@ export const useTripStore = create<TripState>((set, get) => ({
   trip: null,
   debts: [],
   loading: false,
+  planning: null,
+  planningError: '',
+
+  fetchPlanning: async (itineraryId) => {
+    try {
+      const planning = await planningApi.getPlanning(itineraryId);
+      if (get().trip?.id === itineraryId && planning.revision >= (get().planning?.revision ?? 0)) set({ planning, planningError: '' });
+    } catch (error) {
+      if (get().trip?.id === itineraryId) set({ planningError: error instanceof Error ? error.message : '輔助資料載入失敗' });
+    }
+  },
+
+  savePlanning: async (data) => {
+    const { trip, planning } = get();
+    if (!trip || !planning) throw new Error('請先載入旅程輔助資料。');
+    try {
+      const next = await planningApi.savePlanning(trip.id, planning.revision, data);
+      if (get().trip?.id === trip.id && next.revision >= (get().planning?.revision ?? 0)) set({ planning: next, planningError: '' });
+    } catch (error) {
+      await get().fetchPlanning(trip.id);
+      throw error;
+    }
+  },
 
   loadTrip: async (itineraryId) => {
     set({ loading: true });
@@ -58,6 +87,7 @@ export const useTripStore = create<TripState>((set, get) => ({
         expensesApi.getDebts(itineraryId),
       ]);
       set({ trip, debts, loading: false });
+      await get().fetchPlanning(itineraryId);
     } catch (err) {
       console.error('Failed to load trip:', err);
       set({ loading: false });
@@ -85,10 +115,10 @@ export const useTripStore = create<TripState>((set, get) => ({
   refresh: async () => {
     const id = get().trip?.id;
     if (id === undefined) return;
-    await Promise.all([get().fetchTrip(id), get().fetchDebts(id)]);
+    await Promise.all([get().fetchTrip(id), get().fetchDebts(id), get().fetchPlanning(id)]);
   },
 
-  clear: () => set({ trip: null, debts: [], loading: false }),
+  clear: () => set({ trip: null, debts: [], loading: false, planning: null, planningError: '' }),
 
   addItem: async (itineraryId, payload) => {
     await itinerariesApi.createItineraryItem(itineraryId, payload);

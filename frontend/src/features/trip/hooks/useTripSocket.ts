@@ -36,7 +36,13 @@ export const useTripSocket = (itineraryId: number): TripSocket => {
     const socket = connectItinerarySocket(itineraryId, (message) => {
       const store = useTripStore.getState();
       switch (message.type) {
+        case 'refresh_planning':
+          void store.fetchPlanning(itineraryId);
+          break;
         case 'refresh_itinerary':
+          void store.fetchPlanning(itineraryId);
+          void store.fetchTrip(itineraryId);
+          break;
         case 'refresh_notes':
           void store.fetchTrip(itineraryId);
           break;

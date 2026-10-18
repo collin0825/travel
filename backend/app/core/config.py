@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-env"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_DAYS: int = 30
+    GOOGLE_MAPS_API_KEY: str = ""
+    GOOGLE_MAPS_ENABLED: bool = False
+    GOOGLE_ROUTES_ENABLED: bool = False
 
     # CORS — list of allowed frontend origins. NoDecode disables pydantic-settings'
     # built-in JSON parsing so the validator below can accept a comma-separated
@@ -29,6 +32,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        hide_input_in_errors=True,
     )
 
     @field_validator("CORS_ORIGINS", mode="before")

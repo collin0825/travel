@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Plus, RefreshCw, Users } from 'lucide-react';
 import {
@@ -29,6 +29,9 @@ import ScheduleItemForm from './ScheduleItemForm';
 import ScheduleItemCard from './ScheduleItemCard';
 import SortableScheduleItem from './SortableScheduleItem';
 import MembersModal from './MembersModal';
+import PlanningPanel, { RouteLegCard } from './PlanningPanel';
+import ItemAssistancePanel from './ItemAssistancePanel';
+import type { RoutePreview } from '@/api/planning';
 
 const getDayCount = (start: string | null, end: string | null): number => {
   if (!start || !end) return 1;
@@ -84,6 +87,7 @@ const SchedulePanel: React.FC = () => {
   const navigate = useNavigate();
   const { itineraryId, activeUsers } = useTripContext();
   const trip = useTripStore((state) => state.trip);
+  const planning = useTripStore((state) => state.planning);
   const refresh = useTripStore((state) => state.refresh);
   const removeItem = useTripStore((state) => state.removeItem);
   const reorderItems = useTripStore((state) => state.reorderItems);
@@ -93,6 +97,8 @@ const SchedulePanel: React.FC = () => {
   const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
   const [activeItem, setActiveItem] = useState<ItineraryItem | null>(null);
   const [showMembers, setShowMembers] = useState(false);
+  const [routePreview, setRoutePreview] = useState<RoutePreview | null>(null);
+  useEffect(() => { setRoutePreview(null); }, [selectedDay, trip?.items, planning]);
 
   // Server enforces permissions; this only hides editing affordances for viewers.
   const canEdit = trip?.my_role !== 'viewer';
@@ -283,9 +289,11 @@ const SchedulePanel: React.FC = () => {
                 onClose={() => setEditingItem(null)}
               />
             )}
+            {trip && <PlanningPanel key={`${trip.id}-${selectedDay}`} day={selectedDay} dayCount={daysList.length} route={routePreview} onPreview={setRoutePreview} />}
           </div>
 
           <div className="split-main">
+            {routePreview?.start && <div className="planning-day-anchor"><MapPin size={16} /><span>今日起點：{routePreview.start.name}</span></div>}
             {sortedItems.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-secondary)' }}>
                 <MapPin size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
@@ -300,8 +308,9 @@ const SchedulePanel: React.FC = () => {
                 strategy={verticalListSortingStrategy}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {sortedItems.map((item) =>
-                    canEdit ? (
+                  {sortedItems.map((item) => <div key={item.id}>
+                    {routePreview && !routePreview.changed && routePreview.legs.filter(l => l.to_item_id === item.id).map((leg, i) => <RouteLegCard leg={leg} key={i} />)}
+                    {canEdit ? (
                       <SortableScheduleItem
                         key={item.id}
                         item={item}
@@ -316,11 +325,14 @@ const SchedulePanel: React.FC = () => {
                         onDelete={handleDelete}
                         readOnly
                       />
-                    ),
-                  )}
+                    )}
+                    <ItemAssistancePanel item={item} readOnly={!canEdit} />
+                  </div>)}
                 </div>
               </SortableContext>
             )}
+            {routePreview && !routePreview.changed && routePreview.legs.filter(l => l.to_item_id === null).map((leg, i) => <RouteLegCard leg={leg} key={i} />)}
+            {routePreview?.end && <div className="planning-day-anchor"><MapPin size={16} /><span>今日終點：{routePreview.end.name} · 回程時間自行決定</span></div>}
           </div>
         </div>
 

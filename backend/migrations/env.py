@@ -13,7 +13,7 @@ from app.db.base import Base  # imports all models -> registers them on Base.met
 config = context.config
 
 # Inject the runtime DATABASE_URL from .env so alembic.ini needs no secrets.
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:

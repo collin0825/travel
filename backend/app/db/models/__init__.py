@@ -5,6 +5,7 @@ from app.db.models.user import User, itinerary_members
 from app.db.models.itinerary import Itinerary, ItineraryItem
 from app.db.models.expense import Expense, expense_splits
 from app.db.models.note import Note
+from app.db.models.planning import ItineraryPlanning
 
 __all__ = [
     "User",
@@ -12,6 +13,7 @@ __all__ = [
     "ItineraryItem",
     "Expense",
     "Note",
+    "ItineraryPlanning",
     "itinerary_members",
     "expense_splits",
 ]

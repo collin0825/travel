@@ -25,12 +25,12 @@ apiClient.interceptors.request.use((config) => {
 // Normalize errors and handle expired sessions globally.
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<{ detail?: string }>) => {
+  (error: AxiosError<{ detail?: string | { msg: string }[] }>) => {
     if (error.response?.status === 401) {
       clearToken();
       window.dispatchEvent(new Event(AUTH_REQUIRED_EVENT));
     }
     const detail = error.response?.data?.detail;
-    return Promise.reject(new Error(detail || error.message || 'API request failed'));
+    return Promise.reject(new Error(Array.isArray(detail) ? detail.map((entry) => entry.msg).join('；') : detail || error.message || 'API request failed'));
   },
 );
